@@ -12,3 +12,11 @@ MAX_BYTES = 4 * 1024 * 1024
 COLUMNS.update({'key':'业务键','detail':'依据','hours':'缺口 h','flow_unit':'流量单位','version':'版本'})
 
 COLUMNS['arrival']='到达顺序'
+COLUMNS['affected']='是否受影响'
+COLUMNS['need_reopen']='需重开'
+COLUMNS['old_review']='原核定'
+COLUMNS['new_state']='新裁决'
+COLUMNS['old_storage_change']='原库变 m³'
+COLUMNS['new_storage_change']='新库变 m³'
+COLUMNS['storage_delta']='库变差 m³'
+COLUMNS['curve_basis']='曲线差异依据'

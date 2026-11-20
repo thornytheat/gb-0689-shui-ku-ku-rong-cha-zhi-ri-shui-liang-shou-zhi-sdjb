@@ -14,6 +14,7 @@
 | M4 库容换算 | 按曲线分段换算库容 | `/api/m4` | `app/modules/m4_storage/rules.py` `app/modules/m4_storage/service.py` | `tests/test_m4_storage.py` |
 | M5 日收支 | 跨午夜切分日水量账 | `/api/m5` | `app/modules/m5_budget/rules.py` `app/modules/m5_budget/service.py` | `tests/test_m5_budget.py` |
 | M6 异常复核 | 按缺测优先裁决超差 | `/api/m6` | `app/modules/m6_review/rules.py` `app/modules/m6_review/service.py` | `tests/test_m6_review.py` |
+| M6 曲线复测影响 | 逐日期比对新旧曲线库容变化并裁决重开 | `/api/m6/impacts` | `app/modules/m6_review/impact_rules.py` `app/modules/m6_review/impact_service.py` | `tests/test_m6_curve_impact.py` |
 | M7 重算留痕 | 核对总积分与重算水位 | `/api/m7` | `app/modules/m7_trace/rules.py` `app/modules/m7_trace/service.py` | `tests/test_m7_trace.py` |
 
 ## 陷阱登记
@@ -28,6 +29,10 @@
 | TRAP-14 | 同刻水文矛盾 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m2_curve/rules.py` | `tests/test_m2_curve.py::test_real_conflict` |
 | TRAP-15 | 升每秒换算 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m2_curve/rules.py` | `tests/test_m2_curve.py::test_unit_conversion` |
 | TRAP-23 | 午夜切分 | 静默填补或算错 | 明确隔离和守恒 | `app/modules/m5_budget/rules.py` | `tests/test_m5_budget.py::test_midnight_split` |
+| TRAP-30 | 曲线复测全线退回 | 按复测点日期退回会漏掉水位跨过变更区间的日子 | 逐日用同一批 flows 在新旧曲线重算日账，按库容变化判定受影响日期 | `app/modules/m6_review/impact_rules.py` | `tests/test_m6_curve_impact.py::test_day_crossing_changed_interval_is_caught` |
+| TRAP-31 | 同曲线修订重复生成影响记录 | 每次提交都插一条清单 | 曲线指纹 + 唯一约束幂等，重跑复用既有清单 | `app/store.py` `app/modules/m6_review/impact_service.py` | `tests/test_m6_curve_impact.py::test_service_is_idempotent_same_revision` |
+| TRAP-32 | 影响分析失败覆盖旧清单 | 算到一半写库导致旧版丢失 | 先内存完整计算再单行原子写入，失败不触碰既有清单 | `app/modules/m6_review/impact_service.py` | `tests/test_m6_curve_impact.py::test_failure_preserves_previous_list` |
+| TRAP-33 | 新曲线越界整体中断 | 一日越界导致全部日期无法分析 | 单桶越界登记为无法换算，其余日期照常出清单 | `app/modules/m6_review/impact_rules.py` | `tests/test_m6_curve_impact.py::test_out_of_range_day_marked_not_crashed` |
 
 ## 对账规则
 

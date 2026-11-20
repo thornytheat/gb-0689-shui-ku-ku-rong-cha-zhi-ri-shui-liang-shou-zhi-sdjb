@@ -1,1 +1,73 @@
-{% extends "base.html" %}{% block content %}<div class="quad"><section class="panel"><div class="panel__head"><h2>异常裁决</h2></div>{{table(data.rows,['date','coverage_hours','residual','code','state'])}}</section><section class="panel"><div class="panel__head"><h2>复核水账</h2><span>V{{result.version}}</span></div><form id="review-form" data-run="{{result.manifest.run_id}}" data-version="{{result.version}}"><label>决定<select name="decision"><option>通过</option><option>退回</option></select></label><button class="btn primary">保存复核</button></form><div class="review-state">{{result.review}}</div></section></div>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<div class="quad">
+  <section class="panel">
+    <div class="panel__head"><h2>异常裁决</h2></div>
+    {{table(data.rows,['date','coverage_hours','residual','code','state'])}}
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>复核水账</h2><span>V{{result.version}}</span></div>
+    <form id="review-form" data-run="{{result.manifest.run_id}}" data-version="{{result.version}}">
+      <label>决定<select name="decision"><option>通过</option><option>退回</option></select></label>
+      <button class="btn primary">保存复核</button>
+    </form>
+    <div class="review-state">{{result.review}}</div>
+  </section>
+  <section class="panel wide">
+    <div class="panel__head"><h2>曲线复测复核影响</h2><span>历史水文值不变 · 仅曲线修订</span></div>
+    <form id="impact-form" data-run="{{result.manifest.run_id}}">
+      <label>复测后新曲线（JSON：[[水位,库容],…]，严格递增、不作外推）
+        <textarea name="new_curve" rows="4">{{result.curve|tojson}}</textarea>
+      </label>
+      <button class="btn primary">生成复核影响清单</button>
+      <small class="form-hint">同一曲线修订重复提交只复用既有清单，不会重复生成；计算失败时旧版清单保留。</small>
+    </form>
+  </section>
+  {% for imp in impacts %}
+  <section class="panel wide impact-card">
+    <div class="panel__head">
+      <h2>影响清单 · 新曲线 {{imp.new_curve_fingerprint[:12]}}</h2>
+      <span>受影响 {{imp.affected_dates}} 日 · 需重开 {{imp.reopen_dates}} 日 · {{imp.generated_at[:19]}} UTC</span>
+    </div>
+    <div class="curve-diff">
+      <b>新旧曲线差异</b>
+      {% if imp.curve_diff.changed_segments %}
+      <table class="ledger"><thead><tr><th>水位区间 m</th><th>旧库容 m³</th><th>新库容 m³</th><th>差值 m³</th></tr></thead><tbody>
+        {% for s in imp.curve_diff.changed_segments %}
+        <tr><td>{{s.level_from}} ~ {{s.level_to}}</td><td class="num">{{'%.2f'|format(s.old_volume|float)}}</td><td class="num">{{'%.2f'|format(s.new_volume|float)}}</td><td class="num">{{'%.2f'|format(s.delta_volume|float)}}</td></tr>
+        {% endfor %}
+      </tbody></table>
+      {% else %}<small>两条曲线在全部观测水位上库容一致。</small>{% endif %}
+      {% for n in imp.curve_diff.range_notes %}<div class="tag warn diff-note">水位 {{n.level}}：{{n.reason}}</div>{% endfor %}
+    </div>
+    <div class="scroll">
+      <table class="ledger">
+        <thead><tr><th>日期 +08</th><th>测站</th><th>是否受影响</th><th>需重开</th><th>原核定</th><th>新裁决</th><th>原库变 m³</th><th>新库变 m³</th><th>库变差 m³</th><th>依据（新旧曲线差异）</th></tr></thead>
+        <tbody>
+          {% for d in imp.days %}
+          <tr class="{% if d.need_reopen %}row-reopen{% elif d.affected %}row-affected{% else %}row-ok{% endif %}">
+            <td>{{d.date}}</td>
+            <td>{{d.station}}</td>
+            <td>{% if d.affected %}<span class="tag warn">受影响</span>{% else %}<span class="tag">未受影响</span>{% endif %}</td>
+            <td>{% if d.need_reopen %}<span class="tag bad">需重开</span>{% else %}—{% endif %}</td>
+            <td>{{d.old_review}} / {{d.old_state}}（{{d.old_code}}）</td>
+            <td>{{d.new_state}}（{{d.new_code}}）</td>
+            <td class="num">{{'%.2f'|format(d.old_storage_change|float)}}</td>
+            <td class="num">{% if d.new_storage_change is not none %}{{'%.2f'|format(d.new_storage_change|float)}}{% else %}—{% endif %}</td>
+            <td class="num" title="{{d.reason}}">{% if d.storage_delta is not none %}{{'%.2f'|format(d.storage_delta|float)}}{% else %}—{% endif %}</td>
+            <td class="basis">
+              {% for s in d.curve_basis.changed_segments %}<div>{{s.level_from}}~{{s.level_to}} m：{{'%.2f'|format(s.delta_volume|float)}} m³</div>{% endfor %}
+              {% for n in d.curve_basis.range_notes %}<div class="tag warn">{{n.reason}}</div>{% endfor %}
+              {% if not d.curve_basis.changed_segments and not d.curve_basis.range_notes %}<span class="muted">无差异，原批准继续有效</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% else %}
+  <section class="panel wide"><div class="quality-block"><b>暂无曲线修订</b><small>提交复测曲线后，这里给出每个日期的复核影响清单。</small></div></section>
+  {% endfor %}
+</div>
+{% endblock %}

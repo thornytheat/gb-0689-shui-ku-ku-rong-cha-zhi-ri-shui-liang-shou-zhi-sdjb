@@ -21,7 +21,7 @@ docker compose config --quiet
 - M3 流量积分：梯形积分并定位缺口，入口 `/m/3`、`GET/POST /api/m3`。
 - M4 库容换算：按曲线分段换算库容，入口 `/m/4`、`GET/POST /api/m4`。
 - M5 日收支：跨午夜切分日水量账，入口 `/m/5`、`GET/POST /api/m5`。
-- M6 异常复核：按缺测优先裁决超差，入口 `/m/6`、`GET/POST /api/m6`。
+- M6 异常复核：按缺测优先裁决超差，曲线复测后给出逐日期复核影响清单（是否需重开、新旧曲线差异、原核定结果），入口 `/m/6`、`GET/POST /api/m6`、`GET/POST /api/m6/impacts`。
 - M7 重算留痕：核对总积分与重算水位，入口 `/m/7`、`GET/POST /api/m7`。
 
 ## 演示与复核
